@@ -124,6 +124,7 @@ import org.apache.polaris.core.storage.PolarisStorageActions;
 import org.apache.polaris.core.storage.StorageLocation;
 import org.apache.polaris.core.storage.StorageUtil;
 import org.apache.polaris.service.catalog.SupportsNotifications;
+import org.apache.polaris.service.catalog.SupportsRegisterTableOverwrite;
 import org.apache.polaris.service.catalog.common.CatalogUtils;
 import org.apache.polaris.service.catalog.common.LocationUtils;
 import org.apache.polaris.service.catalog.io.AccessConfigProvider;
@@ -140,7 +141,10 @@ import org.slf4j.LoggerFactory;
 
 /** Defines the relationship between PolarisEntities and Iceberg's business logic. */
 public class IcebergCatalog extends BaseMetastoreViewCatalog
-    implements SupportsNamespaces, SupportsNotifications, Closeable {
+    implements SupportsNamespaces,
+        SupportsNotifications,
+        SupportsRegisterTableOverwrite,
+        Closeable {
   private static final Logger LOGGER = LoggerFactory.getLogger(IcebergCatalog.class);
 
   private static final Joiner SLASH = Joiner.on("/");
@@ -278,6 +282,12 @@ public class IcebergCatalog extends BaseMetastoreViewCatalog
 
   @Override
   public Table registerTable(TableIdentifier identifier, String metadataFileLocation) {
+    return registerTable(identifier, metadataFileLocation, false);
+  }
+
+  @Override
+  public Table registerTable(
+      TableIdentifier identifier, String metadataFileLocation, boolean overwrite) {
     Preconditions.checkArgument(
         identifier != null && isValidIdentifier(identifier), "Invalid identifier: %s", identifier);
     Preconditions.checkArgument(
@@ -291,8 +301,9 @@ public class IcebergCatalog extends BaseMetastoreViewCatalog
         metadataFileLocation);
 
     // Throw an exception if this table already exists in the catalog.
-    if (tableExists(identifier)) {
-      throw new AlreadyExistsException("Table already exists: %s", identifier);
+    if (tableExists(identifier) && !overwrite) {
+      throw new AlreadyExistsException(
+          "Table already exists: %s but overwrite is false", identifier);
     }
 
     String locationDir = metadataFileLocation.substring(0, lastSlashIndex);
@@ -316,7 +327,9 @@ public class IcebergCatalog extends BaseMetastoreViewCatalog
 
     InputFile metadataFile = fileIO.newInputFile(metadataFileLocation);
     TableMetadata metadata = TableMetadataParser.read(metadataFile);
-    ops.commit(null, metadata);
+    TableMetadata oldMetadata = (tableExists(identifier) && overwrite) ? ops.current() : null;
+
+    ops.commit(oldMetadata, metadata);
 
     return new BaseTable(ops, fullTableName(name(), identifier), metricsReporter());
   }

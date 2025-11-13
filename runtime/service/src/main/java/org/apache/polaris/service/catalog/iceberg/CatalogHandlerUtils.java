@@ -96,6 +96,7 @@ import org.apache.iceberg.view.ViewOperations;
 import org.apache.iceberg.view.ViewRepresentation;
 import org.apache.polaris.core.config.FeatureConfiguration;
 import org.apache.polaris.core.config.RealmConfig;
+import org.apache.polaris.service.catalog.SupportsRegisterTableOverwrite;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -344,11 +345,24 @@ public class CatalogHandlerUtils {
   }
 
   public LoadTableResponse registerTable(
-      Catalog catalog, Namespace namespace, RegisterTableRequest request) {
+      Catalog catalog, Namespace namespace, RegisterTableRequest request, boolean overwrite) {
     request.validate();
 
     TableIdentifier identifier = TableIdentifier.of(namespace, request.name());
-    Table table = catalog.registerTable(identifier, request.metadataLocation());
+    Table table;
+    /*TODO: determine whether the catalog is an iceberg catalog; if not iceberg, and if overwrite == true, throw an error*/
+    if (catalog instanceof SupportsRegisterTableOverwrite supportsRegisterTableOverwrite) {
+      table =
+          supportsRegisterTableOverwrite.registerTable(
+              identifier, request.metadataLocation(), overwrite);
+    } else {
+      if (overwrite) {
+        throw new UnsupportedOperationException(
+            "Register table with overwrite is not supported in {}" + catalog.getClass().getName());
+      }
+      table = catalog.registerTable(identifier, request.metadataLocation());
+    }
+
     if (table instanceof BaseTable baseTable) {
       return LoadTableResponse.builder()
           .withTableMetadata(baseTable.operations().current())
