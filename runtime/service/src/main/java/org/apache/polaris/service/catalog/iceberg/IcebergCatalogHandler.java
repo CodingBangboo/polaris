@@ -66,7 +66,6 @@ import org.apache.iceberg.rest.requests.CommitTransactionRequest;
 import org.apache.iceberg.rest.requests.CreateNamespaceRequest;
 import org.apache.iceberg.rest.requests.CreateTableRequest;
 import org.apache.iceberg.rest.requests.CreateViewRequest;
-import org.apache.iceberg.rest.requests.RegisterTableRequest;
 import org.apache.iceberg.rest.requests.RenameTableRequest;
 import org.apache.iceberg.rest.requests.UpdateNamespacePropertiesRequest;
 import org.apache.iceberg.rest.requests.UpdateTableRequest;
@@ -113,6 +112,7 @@ import org.apache.polaris.service.events.listeners.PolarisEventListener;
 import org.apache.polaris.service.http.IcebergHttpUtil;
 import org.apache.polaris.service.http.IfNoneMatch;
 import org.apache.polaris.service.types.NotificationRequest;
+import org.apache.polaris.service.types.RegisterTableRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -579,14 +579,16 @@ public class IcebergCatalogHandler extends CatalogHandler implements AutoCloseab
    *
    * @param namespace The namespace to register the table in
    * @param request the register table request
+   * @param overwrite whether the table metadata should be overwritten specified in the request
    * @return ETagged {@link LoadTableResponse} to uniquely identify the table metadata
    */
-  public LoadTableResponse registerTable(Namespace namespace, RegisterTableRequest request) {
+  public LoadTableResponse registerTable(
+      Namespace namespace, RegisterTableRequest request, boolean overwrite) {
     PolarisAuthorizableOperation op = PolarisAuthorizableOperation.REGISTER_TABLE;
     authorizeCreateTableLikeUnderNamespaceOperationOrThrow(
         op, TableIdentifier.of(namespace, request.name()));
 
-    return catalogHandlerUtils.registerTable(baseCatalog, namespace, request);
+    return catalogHandlerUtils.registerTable(baseCatalog, namespace, request, overwrite);
   }
 
   public boolean sendNotification(TableIdentifier identifier, NotificationRequest request) {

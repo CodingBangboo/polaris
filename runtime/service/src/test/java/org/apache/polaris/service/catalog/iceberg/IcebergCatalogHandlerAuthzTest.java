@@ -47,7 +47,6 @@ import org.apache.iceberg.rest.requests.CreateNamespaceRequest;
 import org.apache.iceberg.rest.requests.CreateTableRequest;
 import org.apache.iceberg.rest.requests.CreateViewRequest;
 import org.apache.iceberg.rest.requests.ImmutableCreateViewRequest;
-import org.apache.iceberg.rest.requests.RegisterTableRequest;
 import org.apache.iceberg.rest.requests.RenameTableRequest;
 import org.apache.iceberg.rest.requests.UpdateNamespacePropertiesRequest;
 import org.apache.iceberg.rest.requests.UpdateTableRequest;
@@ -76,6 +75,7 @@ import org.apache.polaris.service.context.catalog.PolarisCallContextCatalogFacto
 import org.apache.polaris.service.http.IfNoneMatch;
 import org.apache.polaris.service.types.NotificationRequest;
 import org.apache.polaris.service.types.NotificationType;
+import org.apache.polaris.service.types.RegisterTableRequest;
 import org.apache.polaris.service.types.TableUpdateNotification;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -816,7 +816,7 @@ public class IcebergCatalogHandlerAuthzTest extends PolarisAuthzTestBase {
             PolarisPrivilege.TABLE_FULL_METADATA,
             PolarisPrivilege.CATALOG_MANAGE_CONTENT),
         () -> {
-          newWrapper(Set.of(PRINCIPAL_ROLE1)).registerTable(NS1, registerRequest);
+          newWrapper(Set.of(PRINCIPAL_ROLE1)).registerTable(NS1, registerRequest, false);
         },
         () -> {
           newWrapper(Set.of(PRINCIPAL_ROLE2)).dropTableWithoutPurge(TABLE_NS1_1);
@@ -856,7 +856,7 @@ public class IcebergCatalogHandlerAuthzTest extends PolarisAuthzTestBase {
             PolarisPrivilege.TABLE_WRITE_DATA,
             PolarisPrivilege.TABLE_LIST),
         () -> {
-          newWrapper(Set.of(PRINCIPAL_ROLE1)).registerTable(NS2, registerRequest);
+          newWrapper(Set.of(PRINCIPAL_ROLE1)).registerTable(NS2, registerRequest, false);
         });
   }
 
